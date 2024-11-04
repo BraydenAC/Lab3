@@ -33,6 +33,7 @@ def tokenize_text_in_batches(texts, batch_size=50):
     embeddings = []
     for i in range(0, len(texts), batch_size):
         batch_texts = texts[i:i + batch_size]
+        print("Working on number: " + str(i))
         inputs = tokenizer(batch_texts, padding=True, truncation=True, return_tensors='pt', max_length=128)
         with torch.no_grad():
             outputs = model(**inputs)
@@ -57,7 +58,7 @@ processed_test = pd.DataFrame(tokenize_text_in_batches(unprocessed_test['text'].
 
 #save to processed files
 print("Saving data...")
-processed_train.to_csv('Datasets/hateful_memes/train.csv', index=False)
-processed_dev.to_csv('Datasets/hateful_memes/dev.csv', index=False)
-processed_test.to_csv('Datasets/hateful_memes/test.csv', index=False)
+processed_train.to_csv('Datasets/hateful_memes/text_train.csv', index=False)
+processed_dev.to_csv('Datasets/hateful_memes/text_dev.csv', index=False)
+processed_test.to_csv('Datasets/hateful_memes/text_test.csv', index=False)
 print("Done!")

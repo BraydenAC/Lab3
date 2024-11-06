@@ -41,13 +41,18 @@ def process_set(pic_list):
     processed = pd.DataFrame()
 
     for i in range(len(pic_list)):
-        print(f"processing image {pic_list[i]}")
-        pic = Image.open("Datasets/hateful_memes/" + pic_list[i])
+        try:
+            print(f"processing image {pic_list[i]}")
+            pic = Image.open("Datasets/hateful_memes/" + pic_list[i])
 
-        #Ensuring picture is in right format
-        pic = pic.convert("RGB")
+            #Ensuring picture is in right format
+            pic = pic.convert("RGB")
 
-        processing = pd.DataFrame(get_image_rep(pic).numpy())
+            processing = pd.DataFrame(get_image_rep(pic).numpy())
+        except FileNotFoundError:
+            processing = pd.DataFrame([[float('nan')] * 2048])
+            print(f"Image {pic_list[i]} not found!")
+
         processed = pd.concat([processed, processing], ignore_index=True)
     return processed
 

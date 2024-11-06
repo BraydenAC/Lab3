@@ -36,25 +36,42 @@ def get_image_rep(image):
 
     return image_representation
 
-#Get a list of all image names
-print("Getting image name list...")
-pic_list = os.listdir("Datasets/hateful_memes/img")
+def process_set(pic_list):
+    #Initialize storage dataframe
+    processed = pd.DataFrame()
 
-#Initialize storage dataframe
-processed = pd.DataFrame()
+    for i in range(len(pic_list)):
+        print(f"processing image {pic_list[i]}")
+        pic = Image.open("Datasets/hateful_memes/" + pic_list[i])
 
-for i in range(len(pic_list)):
-    print(f"processing image {pic_list[i]}")
-    pic = Image.open("Datasets/hateful_memes/img/" + pic_list[i])
+        #Ensuring picture is in right format
+        pic = pic.convert("RGB")
 
-    #Ensuring picture is in right format
-    pic = pic.convert("RGB")
+        processing = pd.DataFrame(get_image_rep(pic).numpy())
+        processed = pd.concat([processed, processing], ignore_index=True)
+    return processed
 
-    processing = pd.DataFrame(get_image_rep(pic).numpy())
-    processed = pd.concat([processed, processing], ignore_index=True)
+#Retrieve the img name lists from sets
+training_set = pd.read_json("Datasets/hateful_memes/train.jsonl", lines=True)
+training_img_names = training_set["img"].tolist()
+dev_set = pd.read_json("Datasets/hateful_memes/dev_seen.jsonl", lines=True)
+dev_img_names = dev_set["img"].tolist()
+test_set = pd.read_json("Datasets/hateful_memes/test_seen.jsonl", lines=True)
+test_img_names = test_set["img"].tolist()
 
+#Process each list
+print("Processing training set...")
+processed_train = process_set(training_img_names)
+print("Processing dev set...")
+processed_dev = process_set(dev_img_names)
+print("Processing test set...")
+processed_test = process_set(test_img_names)
 
 #Save the processed data
-print("Saving data to img.csv...")
-processed.to_csv('Datasets/hateful_memes/img.csv', index=False)
+print("Saving data to img_train.csv...")
+processed_train.to_csv('Datasets/hateful_memes/img_train.csv', index=False)
+print("Saving data to img_dev.csv...")
+processed_train.to_csv('Datasets/hateful_memes/img_dev.csv', index=False)
+print("Saving data to img_test.csv...")
+processed_train.to_csv('Datasets/hateful_memes/img_test.csv', index=False)
 print("Done!")

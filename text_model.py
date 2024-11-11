@@ -18,9 +18,9 @@ class TextClassifier(nn.Module):
         x = self.relu(x)
         x = self.fcl(x)
         return x
-training_set = torch.tensor(pd.read_csv('Datasets/hateful_memes/text_train.csv').values, dtype=torch.float32)
-dev_set = torch.tensor(pd.read_csv('Datasets/hateful_memes/text_dev.csv').values, dtype=torch.float32)
-test_set = torch.tensor(pd.read_csv('Datasets/hateful_memes/text_test.csv').values, dtype=torch.float32)
+X_train = torch.tensor(pd.read_csv('Datasets/hateful_memes/text_train.csv').values, dtype=torch.float32)
+X_dev = torch.tensor(pd.read_csv('Datasets/hateful_memes/text_dev.csv').values, dtype=torch.float32)
+X_test = torch.tensor(pd.read_csv('Datasets/hateful_memes/text_test.csv').values, dtype=torch.float32)
 
 #initialize model
 input_dim = 768
@@ -36,9 +36,9 @@ criterion = nn.BCEWithLogitsLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
 #Do Training Loop
-num_epochs = 20
+num_epochs = 8
 train_file = pd.read_json('Datasets/hateful_memes/train.jsonl', lines=True)
-train_labels = torch.tensor(train_file['label'], dtype=torch.float32).unsqueeze(1)
+y_train = torch.tensor(train_file['label'], dtype=torch.float32).unsqueeze(1)
 
 #Training Loop
 for epoch in range(num_epochs):
@@ -47,8 +47,8 @@ for epoch in range(num_epochs):
 
     #process
     optimizer.zero_grad()
-    outputs = model(training_set)
-    loss = criterion(outputs, train_labels)
+    outputs = model(X_train)
+    loss = criterion(outputs, y_train)
     loss.backward()
     optimizer.step()
 
@@ -60,39 +60,39 @@ for epoch in range(num_epochs):
 model.eval()
 threshold = 0.3
 with torch.no_grad():
-    dev_outputs = model(dev_set)
-    dev_file = pd.read_json('Datasets/hateful_memes/dev_seen.jsonl', lines=True)
-    dev_labels = torch.tensor(dev_file['label'], dtype=torch.float32)
+    dev_outputs = model(X_dev)
+    dev_file = pd.read_json('Datasets/hateful_memes/dev.jsonl', lines=True)
+    y_dev = torch.tensor(dev_file['label'], dtype=torch.float32)
 
     dev_probabilities = torch.sigmoid(dev_outputs)
     dev_predictions = (dev_probabilities >= threshold).float()
 
-    test_outputs = model(test_set)
+    test_outputs = model(X_test)
     test_file = pd.read_json('Datasets/hateful_memes/test_seen.jsonl', lines=True)
-    test_labels = torch.tensor(test_file['label'], dtype=torch.float32)
+    y_test = torch.tensor(test_file['label'], dtype=torch.float32)
 
     test_probabilities = torch.sigmoid(test_outputs)
     test_predictions = (test_probabilities >= threshold).float()
 
     #Calculate metrics
-    dev_accuracy = accuracy_score(dev_labels, dev_predictions)
-    dev_precision = precision_score(dev_labels, dev_predictions)
-    dev_recall = recall_score(dev_labels, dev_predictions)
-    dev_f1 = f1_score(dev_labels, dev_predictions)
-    dev_auc_roc = roc_auc_score(dev_labels, dev_probabilities)
+    # dev_accuracy = accuracy_score(y_dev, dev_predictions)
+    # dev_precision = precision_score(y_dev, dev_predictions)
+    # dev_recall = recall_score(y_dev, dev_predictions)
+    # dev_f1 = f1_score(y_dev, dev_predictions)
+    # dev_auc_roc = roc_auc_score(y_dev, dev_probabilities)
+    #
+    # print("dev results")
+    # print(f"Accuracy: {dev_accuracy}")
+    # print(f"Precision: {dev_precision}")
+    # print(f"Recall: {dev_recall}")
+    # print(f"F1 Score: {dev_f1}")
+    # print(f"AUC_ROC: {dev_auc_roc}")
 
-    print("dev results")
-    print(f"Accuracy: {dev_accuracy}")
-    print(f"Precision: {dev_precision}")
-    print(f"Recall: {dev_recall}")
-    print(f"F1 Score: {dev_f1}")
-    print(f"AUC_ROC: {dev_auc_roc}")
-
-    test_accuracy = accuracy_score(test_labels, test_predictions)
-    test_precision = precision_score(test_labels, test_predictions)
-    test_recall = recall_score(test_labels, test_predictions)
-    test_f1 = f1_score(test_labels, test_predictions)
-    test_auc_roc = roc_auc_score(test_labels, torch.sigmoid(test_outputs))
+    test_accuracy = accuracy_score(y_test, test_predictions)
+    test_precision = precision_score(y_test, test_predictions)
+    test_recall = recall_score(y_test, test_predictions)
+    test_f1 = f1_score(y_test, test_predictions)
+    test_auc_roc = roc_auc_score(y_test, torch.sigmoid(test_outputs))
 
     print("test results")
     print(f"Accuracy: {test_accuracy}")

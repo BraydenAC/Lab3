@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+from sklearn.preprocessing import StandardScaler
+from torch.utils.data import DataLoader, TensorDataset
 
 #Define a simple fully connected neural network
 class TextClassifier(nn.Module):
@@ -18,9 +20,15 @@ class TextClassifier(nn.Module):
         x = self.relu(x)
         x = self.fcl(x)
         return x
-training_set = torch.tensor(pd.read_csv('Datasets/hateful_memes/text_train.csv').values, dtype=torch.float32)
-dev_set = torch.tensor(pd.read_csv('Datasets/hateful_memes/text_dev.csv').values, dtype=torch.float32)
-test_set = torch.tensor(pd.read_csv('Datasets/hateful_memes/text_test.csv').values, dtype=torch.float32)
+
+scaler = StandardScaler()
+X_train = torch.tensor(scaler.fit_transform(pd.read_csv("Datasets/hateful_memes/mini_img_train.csv").values), dtype=torch.float32)
+X_dev = torch.tensor(scaler.transform(pd.read_csv("Datasets/hateful_memes/img_dev.csv").values), dtype=torch.float32)
+X_test = torch.tensor(scaler.transform(pd.read_csv("Datasets/hateful_memes/img_test.csv").values), dtype=torch.float32)
+
+y_train = torch.tensor((pd.read_json("Datasets/hateful_memes/mini_train.jsonl", lines=True)['label']), dtype=torch.float32).unsqueeze(1)
+y_dev = torch.tensor((pd.read_json("Datasets/hateful_memes/dev.jsonl", lines=True))['label'], dtype=torch.float32)
+y_test = torch.tensor((pd.read_json("Datasets/hateful_memes/test_seen.jsonl", lines=True)['label']), dtype=torch.float32)
 
 #initialize model
 input_dim = 2048
@@ -33,48 +41,61 @@ model = TextClassifier(input_dim, hidden_dim, output_dim)
 criterion = nn.BCEWithLogitsLoss()
 
 #Adam optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-6)
 
 #Do Training Loop
-num_epochs = 20
-train_file = pd.read_json('Datasets/hateful_memes/train.jsonl', lines=True)
-train_labels = torch.tensor(train_file['label'], dtype=torch.float32).unsqueeze(1)
+num_epochs = 50
+threshold = 0.48
+
+#Split data into mini-batches
+batchable_train_data = TensorDataset(X_train, y_train)
+train_dataloader = DataLoader(batchable_train_data, batch_size=64, shuffle=True)
 
 #Training Loop
 for epoch in range(num_epochs):
     # set to training mode
     model.train()
+    added_loss = 0.0
 
     #process
-    optimizer.zero_grad()
-    outputs = model(training_set)
-    loss = criterion(outputs, train_labels)
-    loss.backward()
-    optimizer.step()
+    for X_batch, y_batch in train_dataloader:
+        optimizer.zero_grad()
+        outputs = model(X_batch)
+        loss = criterion(outputs, y_batch)
+
+        added_loss += loss.item()
+        loss.backward()
+        optimizer.step()
+
+    average_loss = added_loss/len(train_dataloader)
 
     #print progress
-    print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {loss.item()}")
+    model.eval()
+    with torch.no_grad():
+        # train_probabilities = torch.sigmoid(accumulated_outputs)
+        # train_predictions = (train_probabilities >= threshold).float()
+        print(f"Epoch {epoch}/{num_epochs}, Loss: {average_loss}")
 
 
 #Evaluate on dev and test sets
 model.eval()
 with torch.no_grad():
-    dev_outputs = model(dev_set)
-    dev_file = pd.read_json('Datasets/hateful_memes/dev_seen.jsonl', lines=True)
-    dev_labels = torch.tensor(dev_file['label'], dtype=torch.float32)
-    dev_predictions = torch.sigmoid(dev_outputs).round()
+    dev_outputs = model(X_dev)
+    dev_probabilities = torch.sigmoid(dev_outputs)
+    dev_predictions = (dev_probabilities >= threshold).float()
+    print(dev_probabilities[0], dev_probabilities[1], dev_probabilities[2], dev_probabilities[3], dev_probabilities[4])
+    print(dev_predictions[0], dev_predictions[1], dev_predictions[2], dev_predictions[3], dev_predictions[4])
 
-    test_outputs = model(test_set)
-    test_file = pd.read_json('Datasets/hateful_memes/test_seen.jsonl', lines=True)
-    test_labels = torch.tensor(test_file['label'], dtype=torch.float32)
-    test_predictions = torch.sigmoid(test_outputs).round()
+    test_outputs = model(X_test)
+    test_probabilities = torch.sigmoid(test_outputs)
+    test_predictions = (test_probabilities >= threshold).float()
 
     #Calculate metrics
-    dev_accuracy = accuracy_score(dev_labels, dev_predictions)
-    dev_precision = precision_score(dev_labels, dev_predictions)
-    dev_recall = recall_score(dev_labels, dev_predictions)
-    dev_f1 = f1_score(dev_labels, dev_predictions)
-    dev_auc_roc = roc_auc_score(dev_labels, torch.sigmoid(dev_outputs))
+    dev_accuracy = accuracy_score(y_dev, dev_predictions)
+    dev_precision = precision_score(y_dev, dev_predictions)
+    dev_recall = recall_score(y_dev, dev_predictions)
+    dev_f1 = f1_score(y_dev, dev_predictions)
+    dev_auc_roc = roc_auc_score(y_dev, dev_probabilities)
 
     print("dev results")
     print(f"Accuracy: {dev_accuracy}")
@@ -83,11 +104,11 @@ with torch.no_grad():
     print(f"F1 Score: {dev_f1}")
     print(f"AUC_ROC: {dev_auc_roc}")
 
-    # test_accuracy = accuracy_score(test_labels, test_predictions)
-    # test_precision = precision_score(test_labels, test_predictions)
-    # test_recall = recall_score(test_labels, test_predictions)
-    # test_f1 = f1_score(test_labels, test_predictions)
-    # test_auc_roc = roc_auc_score(test_labels, torch.sigmoid(test_outputs))
+    # test_accuracy = accuracy_score(y_test, test_predictions)
+    # test_precision = precision_score(y_test, test_predictions)
+    # test_recall = recall_score(y_test, test_predictions)
+    # test_f1 = f1_score(y_test, test_predictions)
+    # test_auc_roc = roc_auc_score(y_test, test_probabilities)
     #
     # print("test results")
     # print(f"Accuracy: {test_accuracy}")

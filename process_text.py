@@ -45,8 +45,8 @@ def tokenize_text_in_batches(texts, batch_size=50):
 #Load in data
 print("Loading data...")
 unprocessed_train = pd.read_json('Datasets/hateful_memes/train.jsonl', lines=True)
-unprocessed_dev = pd.read_json('Datasets/hateful_memes/dev_seen.jsonl', lines=True)
-unprocessed_test = pd.read_json('Datasets/hateful_memes/test_seen.jsonl', lines=True)
+unprocessed_dev = pd.read_json('Datasets/hateful_memes/dev.jsonl', lines=True)
+unprocessed_test = pd.read_json('Datasets/hateful_memes/test.jsonl', lines=True)
 
 #process data
 print("processing training data...")

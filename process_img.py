@@ -31,7 +31,7 @@ def get_image_rep(image):
     with torch.no_grad():
         image_representation = resnet_feature_extractor(image)
 
-    #Reshape output from [1, 512, 1, 1] to [1, 512]
+    #Reshape output from [1, 2048, 1, 1] to [1, 2048]
     image_representation = image_representation.view(image_representation.size(0), -1)
 
     return image_representation
@@ -41,17 +41,17 @@ def process_set(pic_list):
     processed = pd.DataFrame()
 
     for i in range(len(pic_list)):
-        try:
-            print(f"processing image {pic_list[i]}")
-            pic = Image.open("Datasets/hateful_memes/" + pic_list[i])
+        # try:
+        print(f"processing image {pic_list[i]}")
+        pic = Image.open("Datasets/hateful_memes/" + pic_list[i])
 
-            #Ensuring picture is in right format
-            pic = pic.convert("RGB")
+        #Ensuring picture is in right format
+        pic = pic.convert("RGB")
 
-            processing = pd.DataFrame(get_image_rep(pic).numpy())
-        except FileNotFoundError:
-            processing = pd.DataFrame([[float('nan')] * 2048])
-            print(f"Image {pic_list[i]} not found!")
+        processing = pd.DataFrame(get_image_rep(pic).numpy())
+        # except FileNotFoundError:
+        #     processing = pd.DataFrame([[float('nan')] * 2048])
+        #     print(f"Image {pic_list[i]} not found!")
 
         processed = pd.concat([processed, processing], ignore_index=True)
     return processed
@@ -59,9 +59,9 @@ def process_set(pic_list):
 #Retrieve the img name lists from sets
 training_set = pd.read_json("Datasets/hateful_memes/train.jsonl", lines=True)
 training_img_names = training_set["img"].tolist()
-dev_set = pd.read_json("Datasets/hateful_memes/dev_seen.jsonl", lines=True)
+dev_set = pd.read_json("Datasets/hateful_memes/dev.jsonl", lines=True)
 dev_img_names = dev_set["img"].tolist()
-test_set = pd.read_json("Datasets/hateful_memes/test_seen.jsonl", lines=True)
+test_set = pd.read_json("Datasets/hateful_memes/test.jsonl", lines=True)
 test_img_names = test_set["img"].tolist()
 
 #Process each list
@@ -76,7 +76,7 @@ processed_test = process_set(test_img_names)
 print("Saving data to img_train.csv...")
 processed_train.to_csv('Datasets/hateful_memes/img_train.csv', index=False)
 print("Saving data to img_dev.csv...")
-processed_train.to_csv('Datasets/hateful_memes/img_dev.csv', index=False)
+processed_dev.to_csv('Datasets/hateful_memes/img_dev.csv', index=False)
 print("Saving data to img_test.csv...")
-processed_train.to_csv('Datasets/hateful_memes/img_test.csv', index=False)
+processed_test.to_csv('Datasets/hateful_memes/img_test.csv', index=False)
 print("Done!")

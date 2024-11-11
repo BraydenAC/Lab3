@@ -28,11 +28,11 @@ class TextClassifier(nn.Module):
         return x
 
 scaler = StandardScaler()
-X_train = torch.tensor(scaler.fit_transform(pd.read_csv("Datasets/hateful_memes/mini_img_train.csv").values), dtype=torch.float32)
+X_train = torch.tensor(scaler.fit_transform(pd.read_csv("Datasets/hateful_memes/img_train.csv").values), dtype=torch.float32)
 X_dev = torch.tensor(scaler.transform(pd.read_csv("Datasets/hateful_memes/img_dev.csv").values), dtype=torch.float32)
 X_test = torch.tensor(scaler.transform(pd.read_csv("Datasets/hateful_memes/img_test.csv").values), dtype=torch.float32)
 
-y_train = torch.tensor((pd.read_json("Datasets/hateful_memes/mini_train.jsonl", lines=True)['label']), dtype=torch.float32).unsqueeze(1)
+y_train = torch.tensor((pd.read_json("Datasets/hateful_memes/train.jsonl", lines=True)['label']), dtype=torch.float32).unsqueeze(1)
 y_dev = torch.tensor((pd.read_json("Datasets/hateful_memes/dev.jsonl", lines=True))['label'], dtype=torch.float32)
 y_test = torch.tensor((pd.read_json("Datasets/hateful_memes/test_seen.jsonl", lines=True)['label']), dtype=torch.float32)
 
@@ -47,11 +47,11 @@ model = TextClassifier(input_dim, hidden_dim, output_dim)
 criterion = nn.BCEWithLogitsLoss()
 
 #Adam optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
 #Do Training Loop
-num_epochs = 12
-threshold = 0.49
+num_epochs = 3
+threshold = 0.2
 
 #Split data into mini-batches
 batchable_train_data = TensorDataset(X_train, y_train)

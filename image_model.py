@@ -9,15 +9,21 @@ from torch.utils.data import DataLoader, TensorDataset
 class TextClassifier(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim):
         super(TextClassifier, self).__init__()
-        self.fci = nn.Linear(input_dim, hidden_dim)
-
-        #Activation function between layers
-        self.relu = nn.ReLU()
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.relu1 = nn.ReLU()
+        self.dropout1 = nn.Dropout(0.3)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.relu2 = nn.ReLU()
+        self.dropout2 = nn.Dropout(0.3)
         self.fcl = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
-        x = self.fci(x)
-        x = self.relu(x)
+        x = self.fc1(x)
+        x = self.relu1(x)
+        x = self.dropout1(x)
+        x = self.fc2(x)
+        x = self.relu2(x)
+        x = self.dropout2(x)
         x = self.fcl(x)
         return x
 
@@ -41,11 +47,11 @@ model = TextClassifier(input_dim, hidden_dim, output_dim)
 criterion = nn.BCEWithLogitsLoss()
 
 #Adam optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-6)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
 #Do Training Loop
-num_epochs = 50
-threshold = 0.48
+num_epochs = 12
+threshold = 0.49
 
 #Split data into mini-batches
 batchable_train_data = TensorDataset(X_train, y_train)
@@ -91,29 +97,29 @@ with torch.no_grad():
     test_predictions = (test_probabilities >= threshold).float()
 
     #Calculate metrics
-    dev_accuracy = accuracy_score(y_dev, dev_predictions)
-    dev_precision = precision_score(y_dev, dev_predictions)
-    dev_recall = recall_score(y_dev, dev_predictions)
-    dev_f1 = f1_score(y_dev, dev_predictions)
-    dev_auc_roc = roc_auc_score(y_dev, dev_probabilities)
-
-    print("dev results")
-    print(f"Accuracy: {dev_accuracy}")
-    print(f"Precision: {dev_precision}")
-    print(f"Recall: {dev_recall}")
-    print(f"F1 Score: {dev_f1}")
-    print(f"AUC_ROC: {dev_auc_roc}")
-
-    # test_accuracy = accuracy_score(y_test, test_predictions)
-    # test_precision = precision_score(y_test, test_predictions)
-    # test_recall = recall_score(y_test, test_predictions)
-    # test_f1 = f1_score(y_test, test_predictions)
-    # test_auc_roc = roc_auc_score(y_test, test_probabilities)
+    # dev_accuracy = accuracy_score(y_dev, dev_predictions)
+    # dev_precision = precision_score(y_dev, dev_predictions)
+    # dev_recall = recall_score(y_dev, dev_predictions)
+    # dev_f1 = f1_score(y_dev, dev_predictions)
+    # dev_auc_roc = roc_auc_score(y_dev, dev_probabilities)
     #
-    # print("test results")
-    # print(f"Accuracy: {test_accuracy}")
-    # print(f"Precision: {test_precision}")
-    # print(f"Recall: {test_recall}")
-    # print(f"F1 Score: {test_f1}")
-    # print(f"AUC_ROC: {test_auc_roc}")
+    # print("dev results")
+    # print(f"Accuracy: {dev_accuracy}")
+    # print(f"Precision: {dev_precision}")
+    # print(f"Recall: {dev_recall}")
+    # print(f"F1 Score: {dev_f1}")
+    # print(f"AUC_ROC: {dev_auc_roc}")
+
+    test_accuracy = accuracy_score(y_test, test_predictions)
+    test_precision = precision_score(y_test, test_predictions)
+    test_recall = recall_score(y_test, test_predictions)
+    test_f1 = f1_score(y_test, test_predictions)
+    test_auc_roc = roc_auc_score(y_test, test_probabilities)
+
+    print("test results")
+    print(f"Accuracy: {test_accuracy}")
+    print(f"Precision: {test_precision}")
+    print(f"Recall: {test_recall}")
+    print(f"F1 Score: {test_f1}")
+    print(f"AUC_ROC: {test_auc_roc}")
 
